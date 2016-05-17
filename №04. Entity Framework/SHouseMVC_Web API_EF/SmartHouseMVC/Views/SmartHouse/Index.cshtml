@@ -1,0 +1,217 @@
+﻿@using SmartHouseMVC.Models
+@using System.Web.Mvc.Html
+@using SmartHouse;
+@model IEnumerable<SummaryTableDevices>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="~/Scripts/jquery-1.10.2.js"></script>
+    <script src="~/Scripts/JSApiTV.js"></script>
+</head>
+<body>
+    @using (Html.BeginForm("Add", "SmartHouse"))
+    {
+        @Html.DropDownList("deviceType", (IEnumerable<SelectListItem>) ViewBag.DevicesList)
+        <input type="submit" id="addDevicesButton" value="Добавить"><br/>
+        
+        foreach (var item in Model)
+        {
+            <div class="device-div" id="@item.Id-device-div">
+                @* Добавление gif анимации в зависимости от девайса*@
+                @if (item.TypeOfDevice == "Tv")
+                {
+                    if (item.Tv.Status == false && item.Tv.СhanState == false)
+                    {
+                        <img src="~/Content/images/offTV.png" alt="Телевизор выключен" id="@item.Id-imTV"/>
+                        <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="00">
+                    }
+                    else if (item.Tv.Status == false && item.Tv.СhanState)
+                    {
+                        <img src="~/Content/images/offTV.png" alt="Телевизор выключен" id="@item.Id-imTV"/>
+                        <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="01">
+                    }
+                    else if (item.Tv.Status && item.Tv.СhanState == false)
+                    {
+                        <img src="~/Content/images/1.gif" id="@item.Id-imTV"/>
+                        <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="10">
+                    }
+                    else if (item.Tv.СhanState && item.Tv.Status)
+                    {
+                        <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="11">
+                        <img src="~/Content/images/2.gif" id="@item.Id-imTV"/>
+                    }
+                    <input type="hidden" name="TVKey" id="@item.Id-TVKey" value="@item.Id">
+                    <p id="@item.Id-status">Устройство: @item.Tv.Name <br /> @item.Tv.ToString()</p>
+                }
+                @if (item.TypeOfDevice == "Ref")
+                {
+                    if (item.Ref.StatusOpen)
+                    {
+                        <img src="~/Content/images/OpenRef.gif" alt="Холодильник открыт"/>
+                    }
+                    else 
+                    {
+                        <img src="~/Content/images/closeRef.gif" alt="Холодильник закрыт"/>
+                    }
+                    <p id="@item.Id-status">Устройство: @item.Ref.Name <br /> @item.Ref.ToString()</p>
+                }
+                @if (item.TypeOfDevice == "Shut")
+                {
+                    if (item.WShutters.StatusOpen)
+                    {
+                        <img src="~/Content/images/OpenW.gif" alt="Жалюзи открыты" />
+                    }
+                    else if (item.WShutters.StatusOpen == false)
+                    {
+                        <img src="~/Content/images/CloseW.gif" alt="Жалюзи закрыты" />
+                    }              
+                    if (item.WShutters.Status == false)
+                    {
+                        <img src="~/Content/images/down.gif" alt="Жалюзи опущены"/>
+                    }
+                    else if (item.WShutters.Status)
+                    {
+                        <img src="~/Content/images/up.gif" alt="Жалюзи подняты"/>
+                    }
+                    <p id="@item.Id-status">Устройство: @item.WShutters.Name <br /> @item.WShutters.ToString()</p>
+                }
+                @if (item.TypeOfDevice == "Ws")
+                {
+                    if (item.WSystem.Status == false)
+                    {
+                        <img src="~/Content/images/wateringOff300.png" alt="Вода не льется"/>
+                    }
+                    else if (item.WSystem.Status)
+                    {
+                        <img src="~/Content/images/244x300_2watering.gif" alt="Вода льется"/>
+                    }
+                    <p id="@item.Id-status">Устройство: @item.WSystem.Name <br /> @item.WSystem.ToString()</p>
+                }
+
+                @*Добавление элементов в зависимости от девайса*@
+                @if (item.TypeOfDevice == "Boiler") 
+                {
+                    <p id="@item.Id-status">Устройство: @item.Boiler.Name <br/> @item.Boiler.ToString()</p>
+                }
+
+                @if (item.TypeOfDevice == "Shut")
+                {
+                    @Html.ActionLink("Поднять", "Operation", new {id = item.Id, command = "on"}, new {@class = "button"})
+                }
+                else if (item.TypeOfDevice == "Tv")
+                {
+                    <button id="@item.Id-on" class="button">Включить</button>
+                }
+                else
+                {
+                    @Html.ActionLink("Включить", "Operation", new {id = item.Id, command = "on"}, new {@class = "button"})
+                }
+
+                @if (item.TypeOfDevice == "Shut")
+                {
+                    @Html.ActionLink("Опустить", "Operation", new {id = item.Id, command = "off"}, new {@class = "button"})<br/>
+                }
+                else if (item.TypeOfDevice == "Tv")
+                {
+                    <button id="@item.Id-off" class="button">Выключить</button>
+                }
+                else
+                {
+                    @Html.ActionLink("Выключить", "Operation", new {id = item.Id, command = "off"}, new {@class = "button"})<br/>
+                }
+
+                @if (item.TypeOfDevice == "Tv")
+                {
+                    if (item.Tv.СhanState)
+                    {
+                        <button id="@item.Id-scan" class="buttonScan" style="color: #444">Настроить</button>
+                    }
+                    else
+                    {
+                        <button id="@item.Id-scan" class="buttonScan">Настроить</button>
+                    }
+                    <button id="@item.Id-listChan" class="button">Список</button><br/>
+                
+                    <button id="@item.Id-nCh" class="button">Канал ++</button>
+                    <button id="@item.Id-eCh" class="button">Канал --</button>
+                    <button id="@item.Id-prevCh" class="button">Prev</button>
+                    <span>Перейти на канал:</span>
+                    @Html.TextBox("chan", null, new {id = "chan-" + item.Id, size = "3"})
+                    <button id="@item.Id-setChannel" class="button">Перейти</button><br/>
+
+                    <button id="@item.Id-maxV" class="button">Звук ++</button>
+                    <button id="@item.Id-minV" class="button">Звук --</button>
+                    <button id="@item.Id-mute" class="button">Mute</button><br/>
+                    <span>Установить звук:</span>
+                    @Html.TextBox("vol", null, new {id = "vol-" + item.Id, size = "3"})
+                    <button id="@item.Id-setVolume" class="button">Установить</button><br/>
+                }
+
+                @if (item.TypeOfDevice == "Shut" || item.TypeOfDevice == "Ref")
+                {
+                    @Html.ActionLink("Открыть", "Operation", new {id = item.Id, command = "open"}, new {@class = "button"})
+                    @Html.ActionLink("Закрыть", "Operation", new {id = item.Id, command = "close"}, new {@class = "button"})<br/>
+                }
+
+                @if (item.TypeOfDevice == "Ref")
+                {
+                    <span>Выберите режим:</span>
+                    @Html.DropDownList("frMode", new SelectList(new[]
+                    {
+                        TemperatureLevel.Default.ToString(), TemperatureLevel.LowFreeze.ToString(), TemperatureLevel.ColderFreezing.ToString(), TemperatureLevel.DeepFreeze.ToString(),
+                        TemperatureLevel.Defrost.ToString()
+                    }), (string) Session["FreezeMode"], new {id = "frMode" + item.Id})
+                    <input type="image" src="~/Content/images/btnU.png" id="@item.Id" formaction="SetFreezeMode/@item.Id"/><br/>
+                
+                    <span>Введите желаемую температуру в диапазоне 2...15:</span>
+                    @Html.TextBox("temp", "", new {id = "temp" + item.Id, size = "3"})<br/>
+                    <input type="image" src="~/Content/images/btnU.png" id="@item.Id" formaction="SetTemperature/@item.Id"/><br/>
+                    <label class="error">@TempData["ErrorTemperature"]</label>
+                }
+
+                @if (item.TypeOfDevice == "Boiler")
+                {
+                    <span>Введите желаемый уровень температуры в диапазоне 30...90:</span>
+                    @Html.TextBox("custom", "", new {id = "custom" + item.Id, size = "3"})
+                    <input type="image" src="~/Content/images/btnU.png" id="@item.Id" formaction="SetCustomMode/@item.Id"/><br/>
+                    <p><label class="error">@TempData["ErrorCustomMode"]</label>
+                    </p>
+
+                    <span>Выберите режим:</span>
+                    @Html.DropDownList("h", new SelectList(new[] { BoilerMode.MaxMode.ToString(), BoilerMode.MinMode.ToString() }), (string)Session["ModeHeating"], new { id = "h" + item.Id })
+                    <input type="image" src="~/Content/images/btnU.png" id="@item.Id" formaction="SetModeHeating/@item.Id" /><br />
+                }
+
+                @if (item.TypeOfDevice == "Shut")
+                {
+                    <span>Выберите режим:</span>
+                    @Html.DropDownList("timeMode", new SelectList(new[] {ShuttersMode.MorningMode.ToString(), ShuttersMode.EveningMode.ToString()}), (string) Session["TimeMode"], new {id = "timeMode" + item.Id })
+                    <input type="image" src="~/Content/images/btnU.png" id="@item.Id" formaction="SetTimeOfDayMode/@item.Id"/><br/>
+                }
+
+                @if (item.TypeOfDevice == "Ws")
+                {
+                    <span>Введите уровень влажности почвы:</span>
+                    @Html.TextBox("level", Session["Level"], new {id = "level" + item.Id, size = "3"})
+                    <input type="image" src="~/Content/images/btnV.png" id="@item.Id" formaction="EnterLevel/@item.Id"/><br/>
+                    <label class="error">@TempData["ErrorSoilMoisture"]</label>
+                }
+
+                @if (item.TypeOfDevice == "Tv")
+                {
+                    <button id="@item.Id-Del" class="DelApi">Удалить</button>
+                    <script>
+                    var key = $("#@item.Id-TVKey").val();
+                    Action(key);
+                    </script>
+                }
+                else
+                {
+                    <br/>@Html.ActionLink("Удалить", "Delete", new {id = item.Id }, new {@class = "Del"})
+                }
+            </div>
+        }
+    }
+</body>
+</html>
