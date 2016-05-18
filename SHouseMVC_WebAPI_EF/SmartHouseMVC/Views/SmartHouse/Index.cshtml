@@ -1,0 +1,237 @@
+﻿@using System.Collections.Generic
+@using System.Web.Mvc.Html
+@using SmartHouse;
+@model IEnumerable<Device>
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    @Styles.Render("~/Content/Style.css")
+    <script src="~/Scripts/jquery-1.10.2.js"></script>
+    <script src="~/Scripts/JSApiTV.js"></script>
+</head>
+<body>
+    <header class="header"></header>
+    <div class="wrapper">
+        @using (Html.BeginForm("Add", "SmartHouse"))
+        {
+            @Html.DropDownList("deviceType", (IEnumerable<SelectListItem>)ViewBag.DevicesList)
+            <input type="submit" id="addDevicesButton" value="Добавить"><br />
+
+            foreach (var item in Model)
+            {
+                <div class="device-div" id="@item.Id-device-div">
+                    @* Добавление gif анимации в зависимости от девайса*@
+                    @if (item is ISetChannel && item is IChannelSetup)
+                    {
+                        IChannelSetup chSetup = (IChannelSetup)item;
+                        if (item.Status == false && chSetup.СhanState == false)
+                        {
+                            <img src="~/Content/images/offTV.png" alt="Телевизор выключен" id="@item.Id-imTV" />
+                            <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="00">
+                        }
+                        else if (item.Status == false && chSetup.СhanState)
+                        {
+                            <img src="~/Content/images/offTV.png" alt="Телевизор выключен" id="@item.Id-imTV" />
+                            <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="01">
+                        }
+                        else if (item.Status && chSetup.СhanState == false)
+                        {
+                            <img src="~/Content/images/1.gif" id="@item.Id-imTV" />
+                            <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="10">
+                        }
+                        else if (chSetup.СhanState && item.Status)
+                        {
+                            <input type="hidden" name="chSetup" id="@item.Id-chSetup" value="11">
+                            <img src="~/Content/images/2.gif" id="@item.Id-imTV" />
+                        }
+                        <input type="hidden" name="TVKey" id="@item.Id-TVKey" value="@item.Id">
+                    }
+                    @if (item is IRateOfOpening)
+                    {
+                        bool statusOpen = ((IRateOfOpening)item).StatusOpen;
+                        if (statusOpen && item is ISetFreezeMode)
+                        {
+                            <img src="~/Content/images/OpenRef.gif" alt="Холодильник открыт" />
+                        }
+                        else if (statusOpen == false && item is ISetFreezeMode)
+                        {
+                            <img src="~/Content/images/closeRef.gif" alt="Холодильник закрыт" />
+                        }
+                        else if (statusOpen && item is ITimeOfDayMode)
+                        {
+                            <img src="~/Content/images/OpenW.gif" alt="Жалюзи открыты" />
+                        }
+                        else if (statusOpen == false && item is ITimeOfDayMode)
+                        {
+                            <img src="~/Content/images/CloseW.gif" alt="Жалюзи закрыты" />
+                        }
+                    }
+                    @if (item is ITimeOfDayMode)
+                    {
+                        if (item.Status == false)
+                        {
+                            <img src="~/Content/images/down.gif" alt="Жалюзи опущены" />
+                        }
+                        else if (item.Status)
+                        {
+                            <img src="~/Content/images/up.gif" alt="Жалюзи подняты" />
+                        }
+                    }
+                    @if (item is IEnterLevel)
+                    {
+                        if (item.Status == false)
+                        {
+                            <img src="~/Content/images/wateringOff300.png" alt="Вода не льется" />
+                        }
+                        else if (item.Status)
+                        {
+                            <img src="~/Content/images/244x300_2watering.gif" alt="Вода льется" />
+                        }
+                    }@*Добавление элементов в зависимости от девайса*@<p id="@item.Id-status">Устройство: @item.Name <br /> @item.ToString()</p>
+
+                    @if (item is ITimeOfDayMode)
+                    {
+                        @Html.ActionLink("Поднять", "Operation", new { id = item.Id + "_" + item.Type, command = "on" }, new { @class = "button" }) /////////
+                    }
+                    else if (item is IChannelSetup & item is ISetChannel & item is ISetVolume)
+                    {
+                        <button id="@item.Id-on" class="button">Включить</button>
+                    }
+                    else
+                    {
+                        @Html.ActionLink("Включить", "Operation", new { id = item.Id + "_" + item.Type, command = "on" }, new { @class = "button" })
+                    }
+
+                    @if (item is ITimeOfDayMode)
+                    {
+                        @Html.ActionLink("Опустить", "Operation", new { id = item.Id + "_" + item.Type, command = "off" }, new { @class = "button" })<br />
+                    }
+                    else if (item is IChannelSetup & item is ISetChannel & item is ISetVolume)
+                    {
+                        <button id="@item.Id-off" class="button">Выключить</button>
+                    }
+                    else
+                    {
+                        @Html.ActionLink("Выключить", "Operation", new { id = item.Id + "_" + item.Type, command = "off" }, new { @class = "button" })<br />
+                    }
+
+                    @if (item is IChannelSetup)
+                    {
+                        IChannelSetup chSetup = (IChannelSetup)item;
+                        if (chSetup.СhanState)
+                        {
+                            <button id="@item.Id-scan" class="buttonScan" style="color: #444">Настроить</button>
+                        }
+                        else
+                        {
+                            <button id="@item.Id-scan" class="buttonScan">Настроить</button>
+                        }
+                        <button id="@item.Id-listChan" class="button">Список</button><br />
+                    }
+
+                    @if (item is ISetChannel)
+                    {
+                        <button id="@item.Id-nCh" class="button">Канал ++</button>
+                        <button id="@item.Id-eCh" class="button">Канал --</button>
+                        <button id="@item.Id-prevCh" class="button">Prev</button>
+                        <span>Перейти на канал:</span>
+                        @Html.TextBox("chan", null, new { id = "chan-" + item.Id, size = "3" })
+                        <button id="@item.Id-setChannel" class="button">Перейти</button><br />
+
+                    }
+
+                    @if (item is ISetVolume)
+                    {
+                        <button id="@item.Id-maxV" class="button">Звук ++</button>
+                        <button id="@item.Id-minV" class="button">Звук --</button>
+                        <button id="@item.Id-mute" class="button">Mute</button><br />
+                        <span>Установить звук:</span>
+                        @Html.TextBox("vol", null, new { id = "vol-" + item.Id, size = "3" })
+                        <button id="@item.Id-setVolume" class="button">Установить</button><br />
+                    }
+
+                    @if (item is IRateOfOpening)
+                    {
+                        @Html.ActionLink("Открыть", "Operation", new { id = item.Id + "_" + item.Type, command = "open" }, new { @class = "button" })
+                        @Html.ActionLink("Закрыть", "Operation", new { id = item.Id + "_" + item.Type, command = "close" }, new { @class = "button" })<br />
+                    }
+
+                    @if (item is ISetFreezeMode)
+                    {
+                        <span>Выберите режим:</span>
+                        @Html.DropDownList("frMode", new SelectList(new[]
+                {
+                    TemperatureLevel.Default.ToString(), TemperatureLevel.LowFreeze.ToString(), TemperatureLevel.ColderFreezing.ToString(), TemperatureLevel.DeepFreeze.ToString(),
+                    TemperatureLevel.Defrost.ToString()
+                }), (string)Session["FreezeMode"], new { id = "frMode" + item.Id })
+                        <input type="image" src="~/Content/images/btnU.png" id="@item.Id _@item.Type" formaction="SetFreezeMode/@item.Id _@item.Type" /><br />
+                    }
+
+                    @if (item is ISetTemperature)
+                    {
+                        <span>Введите желаемую температуру в диапазоне 2...15:</span>
+                        @Html.TextBox("temp", "", new { id = "temp" + item.Id, size = "3" })<br />
+                        <input type="image" src="~/Content/images/btnU.png" id="@item.Id _@item.Type" formaction="SetTemperature/@item.Id _@item.Type" /><br />
+                        <label class="error">@TempData["ErrorTemperature"]</label>
+                    }
+
+                    @if (item is ICustomMode)
+                    {
+                        <span>Введите желаемый уровень температуры в диапазоне 30...90:</span>
+                        @Html.TextBox("custom", "", new { id = "custom" + item.Id, size = "3" })
+                        <input type="image" src="~/Content/images/btnU.png" id="@item.Id _@item.Type" formaction="SetCustomMode/@item.Id _@item.Type" /><br />
+                        <p>
+                            <label class="error">@TempData["ErrorCustomMode"]</label>
+                        </p>
+                    }
+
+                    @if (item is ITimeOfDayMode)
+                    {
+                        <span>Выберите режим:</span>
+                        @Html.DropDownList("timeMode", new SelectList(new[] { ShuttersMode.MorningMode.ToString(), ShuttersMode.EveningMode.ToString() }), (string)Session["TimeMode"], new { id = "timeMode" + item.Id })
+                        <input type="image" src="~/Content/images/btnU.png" id="@item.Id _@item.Type" formaction="SetTimeOfDayMode/@item.Id _@item.Type" /><br />
+                    }
+
+                    @if (item is IModeHeating)
+                    {
+                        <span>Выберите режим:</span>
+                        @Html.DropDownList("h", new SelectList(new[] { BoilerMode.MaxMode.ToString(), BoilerMode.MinMode.ToString() }), (string)Session["ModeHeating"], new { id = "h" + item.Id })
+                        <input type="image" src="~/Content/images/btnU.png" id="@item.Id _@item.Type" formaction="SetModeHeating/@item.Id _@item.Type" /><br />
+                    }
+
+                    @if (item is IEnterLevel)
+                    {
+                        <span>Введите уровень влажности почвы:</span>
+                        @Html.TextBox("level", Session["Level"], new { id = "level" + item.Id, size = "3" })
+                        <input type="image" src="~/Content/images/btnV.png" id="@item.Id _@item.Type" formaction="EnterLevel/@item.Id _@item.Type" /><br />
+                        <label class="error">@TempData["ErrorSoilMoisture"]</label>
+                    }
+
+                    @if (item is IChannelSetup & item is ISetChannel & item is ISetVolume)
+                    {
+                        <button id="@item.Id-Del" class="DelApi">Удалить</button>
+                    }
+                    else
+                    {
+                        <br />@Html.ActionLink("Удалить", "Delete", new { id = item.Id + "_" + item.Type }, new { @class = "Del" })
+                    }
+                </div>
+
+                if (item is ISetChannel && item is IChannelSetup)
+                {
+                    <script>
+                        var key = $("#@item.Id-TVKey").val();
+                        Action(key);
+                    </script>
+                }
+            }
+        }
+    </div>
+</body>
+</html>
